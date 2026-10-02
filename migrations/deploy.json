@@ -1,0 +1,11 @@
+{
+  "cluster": "testnet",
+  "provider": {
+    "wallet": "~/.config/solana/id.json"
+  },
+  "programs": {
+    "testnet": {
+      "solana_privacy_shield": "PrivShield11111111111111111111111111111111"
+    }
+  }
+}
