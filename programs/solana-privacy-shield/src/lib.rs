@@ -15,7 +15,7 @@ solana_program::declare_id!("PrivShield11111111111111111111111111111111");
 entrypoint!(process_instruction);
 
 pub fn process_instruction(
-    program_id: &Pubkey,
+    progran_id: &Pubkey,
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
