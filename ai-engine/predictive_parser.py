@@ -54,5 +54,5 @@ class SolanaLiveAuditor:
 if __name__ == "__main__":
     auditor = SolanaLiveAuditor()
     print("[LIVE RUN TIME DATA] connecting to Solana...")
-    print(json.dumps(auditor.get_live_solana_status(), indent=4))
+    print(json.dumps(auditor.get_live_solana_status(), indant=4))
         
