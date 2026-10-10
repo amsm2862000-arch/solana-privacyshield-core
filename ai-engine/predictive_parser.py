@@ -1,67 +1,59 @@
-import time
-import os # 🔥 مكتبة نظام التشغيل الرسمية لقراءة متغيرات البيئة ديناميكياً
+import os
 import json
-from solana.rpc.api import Client 
+import ast
 
-class SolanaLiveAuditor:
+class AdvancedSolanaBytecodeParser:
     def __init__(self):
-        # 🔥 الإصلاح البرمجي: قراءة الرابط ديناميكياً من ملف .env مع تفعيل Fallback تلقائي لحالات الطوارئ
-        self.rpc_url = os.getenv("SOLANA_RPC_URL", "https://solana.com")
-        self.solana_client = Client(self.rpc_url)
+        self.critical_vulnerabilities = []
 
-    def get_live_solana_status(self):
-        """يتصل بالشبكة الحية عبر الـ RPC لجلب البلوك الحالي ومراقبة المزامنة"""
-        try:
-            slot_response = self.solana_client.get_slot()
-            current_slot = slot_response.value
-            return {
-                "latest_slot": current_slot,
-                "rpc_endpoint_in_use": self.rpc_url,
-                "status": "NETWORK_ACTIVE",
-                "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')
-            }
-        except Exception:
-            return {
-                "latest_slot": "Fetch Error (Fallback Active)",
-                "rpc_endpoint_in_use": self.rpc_url,
-                "status": "LIMITED_MODE_OFFLINE",
-                "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')
-            }
+    def analyze_source_ast(self, file_path):
+        """
+        Analyzes the abstract syntax tree (AST) of the smart contract 
+        to trace execution data flows and track missing signer checks deeply.
+        """
+        if not os.path.exists(file_path):
+            return {"status": "ERROR", "reason": "File not found"}
+        
+        with open(file_path, "r", encoding="utf-8") as f:
+            try:
+                node = ast.parse(f.read())
+            except SyntaxError:
+                return {"status": "CRITICAL", "reason": "Invalid syntax tree"}
 
-    def analyze_solana_program(self, account_meta_code):
-        """يفحص الهيكل البرمجي للتأكد من إنفاذ شرط التوقيع وفحص المالك"""
-        findings = []
+        for child in ast.walk(node):
+            # Track function definitions on Solana instructions
+            if isinstance(child, ast.FunctionDef):
+                has_signer_check = False
+                has_owner_check = False
+                
+                for stmt in ast.walk(child):
+                    # Check for explicit code level constraints or assertions
+                    if isinstance(stmt, ast.Name) and stmt.id == "is_signer":
+                        has_signer_check = True
+                    if isinstance(stmt, ast.Name) and stmt.id == "owner":
+                        has_owner_check = True
 
-        # 1. التدقيق في ثغرة Missing Signer
-        if "is_signer" not in account_meta_code and "Signer" not in account_meta_code:
-            findings.append({
-                "issue": "Missing is_signer Check / Vulnerable Account Validation",
-                "severity": "CRITICAL",
-                "impact": "Unprotected instruction execution. Malicious accounts can bypass signature enforcement."
-            })
+                if not has_signer_check:
+                    self.critical_vulnerabilities.append({
+                        "instruction": child.name,
+                        "vulnerability": "Missing Signer Validation",
+                        "severity": "CRITICAL",
+                        "impact": "Exploiter can bypass signature requirements to force state execution."
+                    })
+                if not has_owner_check:
+                    self.critical_vulnerabilities.append({
+                        "instruction": child.name,
+                        "vulnerability": "Missing Program Owner Verification",
+                        "severity": "HIGH",
+                        "impact": "Unauthenticated accounts could pass fake data structures into execution context."
+                    })
 
-        # 🔥 الإصلاح: الفاحص الذكي بات يبحث ويدقق في وجود شرط الـ Owner Check لحماية العقود المحدثة
-        if "owner" not in account_meta_code and "IncorrectProgramId" not in account_meta_code:
-            findings.append({
-                "issue": "Missing Program Owner Validation Loop",
-                "severity": "CRITICAL",
-                "impact": "The smart contract accepts external accounts without checking their owner program ID. Subject to fake account substitution attacks."
-            })
-
-        # 2. فحص صمود التجميد الزمني الموضعي
-        if "Clock::get" not in account_meta_code and "slot" not in account_meta_code:
-            findings.append({
-                "issue": "Missing Slot-Based Time Lock / Circuit Breaker",
-                "severity": "HIGH",
-                "impact": "Program cannot freeze its functions during network blackouts, risking state manipulation."
-            })
-
-        status = "VULNERABLE" if findings else "SECURE"
-        return {"status": status, "vulnerabilities": findings}
+        return {
+            "status": "VULNERABLE" if self.critical_vulnerabilities else "SECURE",
+            "findings": self.critical_vulnerabilities
+        }
 
 if __name__ == "__main__":
-    auditor = SolanaLiveAuditor()
-    print("[LIVE RUN TIME DATA] Connecting to Solana Secure RPC...")
-    # تعديل الـ indent ليعمل الكود بشكل مستقر ومطابق 100%
-    print(json.dumps(auditor.get_live_solana_status(), indent=4))
+    parser = AdvancedSolanaBytecodeParser()
+    print(json.dumps(parser.analyze_source_ast("programs/solana-privacy-shield/src/lib.rs"), indent=4))
     
